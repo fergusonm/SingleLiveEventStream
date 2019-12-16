@@ -83,7 +83,7 @@ class ValveSubjectUnitTests {
     }
 
     @Test
-    fun `observers after on pause`() {
+    fun `No observers after on pause`() {
         // GIVEN
         val stream = ValveSubject<Int>()
 
@@ -99,7 +99,7 @@ class ValveSubjectUnitTests {
     }
 
     @Test
-    fun `no observers after on stop`() {
+    fun `No observers after on stop`() {
         // GIVEN
         val stream = ValveSubject<Int>()
 
