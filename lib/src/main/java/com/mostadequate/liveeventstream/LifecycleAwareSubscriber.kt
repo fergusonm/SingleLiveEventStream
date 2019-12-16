@@ -14,7 +14,7 @@ class LifecycleAwareSubscriber<T> constructor(
     private val observer: (T) -> Unit
 ) : LifecycleObserver {
     private var eventSourceDisposable: Disposable? = null
-    private var previousState: Lifecycle.State = Lifecycle.State.INITIALIZED
+    private var previousEvent: Lifecycle.Event = Lifecycle.Event.ON_CREATE
 
     init {
         when {
@@ -34,9 +34,9 @@ class LifecycleAwareSubscriber<T> constructor(
             eventSourceDisposable?.dispose()
             lifecycleOwner.lifecycle.removeObserver(this)
         } else {
-            val wasActive = previousState.isAtLeast(Lifecycle.State.STARTED)
-            val isActive = state.isAtLeast(Lifecycle.State.STARTED)
-            previousState = state
+            val wasActive = previousEvent == Lifecycle.Event.ON_START || previousEvent == Lifecycle.Event.ON_RESUME
+            val isActive = event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME
+            previousEvent = event
 
             when {
                 wasActive && !isActive -> eventSourceDisposable?.dispose()
@@ -44,9 +44,13 @@ class LifecycleAwareSubscriber<T> constructor(
                     // Start observing
                     eventSourceDisposable?.dispose()
                     eventSourceDisposable = object : DisposableObserver<T>() {
-                        override fun onComplete() = dispose()
+                        override fun onComplete() {
+                            dispose()
+                        }
 
-                        override fun onNext(value: T) = observer.invoke(value)
+                        override fun onNext(value: T) {
+                            observer.invoke(value)
+                        }
 
                         override fun onError(e: Throwable) {
                             dispose()
