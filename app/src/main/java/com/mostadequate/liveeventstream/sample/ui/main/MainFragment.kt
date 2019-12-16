@@ -57,10 +57,6 @@ class MainFragment : Fragment() {
             }
         }
 
-        viewModel.events.observe(viewLifecycleOwner) {
-            Toast.makeText(this.context, "Second observer also received event for $it", Toast.LENGTH_LONG).show()
-        }
-
         return view
     }
 
@@ -68,7 +64,7 @@ class MainFragment : Fragment() {
         super.onStart()
 
         viewModel.events.observe(viewLifecycleOwner) {
-            Toast.makeText(this.context, "Late third observer only receives new event for $it", Toast.LENGTH_LONG).show()
+            Toast.makeText(this.context, "Late second observer only receives new event for $it", Toast.LENGTH_LONG).show()
         }
     }
 
