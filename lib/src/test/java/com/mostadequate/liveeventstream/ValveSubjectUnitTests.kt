@@ -54,7 +54,7 @@ class ValveSubjectUnitTests {
     }
 
     @Test
-    fun `observers after on start`() {
+    fun `Has observers after on start`() {
         // GIVEN
         val stream = ValveSubject<Int>()
 
@@ -68,7 +68,7 @@ class ValveSubjectUnitTests {
     }
 
     @Test
-    fun `observers after on resume`() {
+    fun `Has observers after on resume`() {
         // GIVEN
         val stream = ValveSubject<Int>()
 
@@ -116,7 +116,7 @@ class ValveSubjectUnitTests {
     }
 
     @Test
-    fun `observers after on pause and then on resume`() {
+    fun `Has observers after on pause and then on resume`() {
         // GIVEN
         val stream = ValveSubject<Int>()
 
@@ -133,7 +133,7 @@ class ValveSubjectUnitTests {
     }
 
     @Test
-    fun `observers after on stop and then on start`() {
+    fun `Has observers after on stop and then on start`() {
         // GIVEN
         val stream = ValveSubject<Int>()
 
@@ -151,7 +151,7 @@ class ValveSubjectUnitTests {
     }
 
     @Test
-    fun `no observers after on destroy`() {
+    fun `No observers after on destroy`() {
         // GIVEN
         val stream = ValveSubject<Int>()
 
