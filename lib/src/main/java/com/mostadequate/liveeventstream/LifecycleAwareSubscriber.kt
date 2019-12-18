@@ -1,9 +1,6 @@
 package com.mostadequate.liveeventstream
 
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.OnLifecycleEvent
+import androidx.lifecycle.*
 import io.reactivex.ObservableSource
 import io.reactivex.disposables.Disposable
 import io.reactivex.observers.DisposableObserver
@@ -11,7 +8,7 @@ import io.reactivex.observers.DisposableObserver
 class LifecycleAwareSubscriber<T> constructor(
     private val eventSource: ObservableSource<T>,
     private val lifecycleOwner: LifecycleOwner,
-    private val observer: (T) -> Unit
+    private val observer: Observer<T>
 ) : LifecycleObserver {
     private var eventSourceDisposable: Disposable? = null
     private var previousEvent: Lifecycle.Event = Lifecycle.Event.ON_CREATE
@@ -49,7 +46,7 @@ class LifecycleAwareSubscriber<T> constructor(
                         }
 
                         override fun onNext(value: T) {
-                            observer.invoke(value)
+                            observer.onChanged(value)
                         }
 
                         override fun onError(e: Throwable) {
@@ -65,6 +62,10 @@ class LifecycleAwareSubscriber<T> constructor(
 }
 
 
-fun <T> ObservableSource<T>.observe(lifecycleOwner: LifecycleOwner, observer: (T) -> Unit) {
+fun <T> ObservableSource<T>.observe(lifecycleOwner: LifecycleOwner, observer: Observer<T>) {
     LifecycleAwareSubscriber(this, lifecycleOwner, observer)
+}
+
+fun <T> ObservableSource<T>.observe(lifecycleOwner: LifecycleOwner, observer: (T) -> Unit) {
+    this.observe(lifecycleOwner, Observer { observer.invoke(it) })
 }
