@@ -157,6 +157,8 @@ class ValveSubjectUnitTests {
 
         // WHEN
         stream.observe(lifecycleOwner) {}
+        stream.observe(lifecycleOwner) {}
+        stream.observe(lifecycleOwner) {}
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
@@ -168,7 +170,132 @@ class ValveSubjectUnitTests {
         assertFalse(stream.hasObservers())
     }
 
+    @Test
+    fun `Emissions before lifecycle are buffered`() {
+        // GIVEN
+        var observed = false
+        val stream = ValveSubject<Int>()
+        stream.onNext(1)
 
+        // WHEN
+        stream.observe(lifecycleOwner) {
+            observed = true
+        }
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+
+        // THEN
+        assertTrue(observed)
+    }
+
+    @Test
+    fun `Emissions before lifecycle are observed by all observers added before lifecycle is ready`() {
+        // GIVEN
+        var observed1 = false
+        var observed2 = false
+        val stream = ValveSubject<Int>()
+        stream.onNext(1)
+
+        // WHEN
+        stream.observe(lifecycleOwner) {
+            observed1 = true
+        }
+        stream.observe(lifecycleOwner) {
+            observed2 = true
+        }
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+
+        // THEN
+        assertTrue(observed1)
+        assertTrue(observed2)
+    }
+
+
+    @Test
+    fun `Early observers see emissions after lifecycle state is good`() {
+        // GIVEN
+        val values1 = ArrayList<Int>()
+        val values2 = ArrayList<Int>()
+        val values3 = ArrayList<Int>()
+
+
+        val stream = ValveSubject<Int>()
+        stream.onNext(1)
+        stream.onNext(2)
+
+        // WHEN
+        stream.observe(lifecycleOwner) {
+            values1.add(it)
+        }
+        stream.observe(lifecycleOwner) {
+            values2.add(it)
+        }
+        stream.observe(lifecycleOwner) {
+            values3.add(it)
+        }
+
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+
+        stream.onNext(3)
+
+        // THEN
+        assertTrue(values1.contains(1))
+        assertTrue(values1.contains(2))
+        assertTrue(values1.contains(3))
+
+        assertTrue(values2.contains(1))
+        assertTrue(values2.contains(2))
+        assertTrue(values2.contains(3))
+
+        assertTrue(values3.contains(1))
+        assertTrue(values3.contains(2))
+        assertTrue(values3.contains(3))
+    }
+
+    @Test
+    fun `Late observers only see new emissions after lifecycle state is good`() {
+        // GIVEN
+        val values3 = ArrayList<Int>()
+        val values4 = ArrayList<Int>()
+
+
+        val stream = ValveSubject<Int>()
+        stream.onNext(1)
+        stream.onNext(2)
+
+        // WHEN
+        stream.observe(lifecycleOwner) {
+            values3.add(it)
+        }
+
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+
+        stream.onNext(3)
+
+        stream.observe(lifecycleOwner) {
+            values4.add(it)
+        }
+
+        stream.onNext(4)
+
+        // THEN
+        assertTrue(values3.contains(1))
+        assertTrue(values3.contains(2))
+        assertTrue(values3.contains(3))
+        assertTrue(values3.contains(4))
+
+        assertFalse(values4.contains(1))
+        assertFalse(values4.contains(2))
+        assertFalse(values4.contains(3))
+        assertTrue(values4.contains(4))
+    }
 }
 
 class SchedulerRule : TestRule {
