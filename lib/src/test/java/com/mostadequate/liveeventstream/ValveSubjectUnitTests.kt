@@ -19,7 +19,7 @@ import org.junit.runners.model.Statement
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 
-class ValveSubjectUnitTests {
+class SingleLiveEventStreamUnitTests {
 
     @Rule
     @JvmField
@@ -41,124 +41,77 @@ class ValveSubjectUnitTests {
     }
 
     @Test
-    fun `No observers before on start`() {
+    fun `No emissions observed before on start`() {
         // GIVEN
-        val stream = ValveSubject<Int>()
+        val stream = SingleLiveEventStream<Int>()
+        stream.emit(1)
+        var observed = false
 
         // WHEN
-        stream.observe(lifecycleOwner) {}
+        stream.observe(lifecycleOwner) {
+            observed = true
+        }
+
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
 
         // THEN
-        assertFalse(stream.hasObservers())
+        assertFalse(observed)
     }
 
     @Test
-    fun `Has observers after on start`() {
+    fun `Has emissions observed after on start`() {
         // GIVEN
-        val stream = ValveSubject<Int>()
+        val stream = SingleLiveEventStream<Int>()
+        stream.emit(1)
+        var observed = false
 
         // WHEN
-        stream.observe(lifecycleOwner) {}
+        stream.observe(lifecycleOwner) {
+            observed = true
+        }
+
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
 
         // THEN
-        assertTrue(stream.hasObservers())
+        assertTrue(observed)
     }
 
     @Test
-    fun `Has observers after on resume`() {
+    fun `Two early observers, neither observes before on start `() {
         // GIVEN
-        val stream = ValveSubject<Int>()
+        val stream = SingleLiveEventStream<Int>()
+        stream.emit(1)
+
+        var observed1 = false
+        var observed2 = false
 
         // WHEN
-        stream.observe(lifecycleOwner) {}
+        stream.observe(lifecycleOwner) {
+            observed1 = true
+        }
+        stream.observe(lifecycleOwner) {
+            observed2 = true
+        }
+
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
 
         // THEN
-        assertTrue(stream.hasObservers())
+        assertFalse(observed1)
+        assertFalse(observed2)
     }
 
-    @Test
-    fun `No observers after on pause`() {
-        // GIVEN
-        val stream = ValveSubject<Int>()
-
-        // WHEN
-        stream.observe(lifecycleOwner) {}
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-
-        // THEN
-        assertFalse(stream.hasObservers())
-    }
-
-    @Test
-    fun `No observers after on stop`() {
-        // GIVEN
-        val stream = ValveSubject<Int>()
-
-        // WHEN
-        stream.observe(lifecycleOwner) {}
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
-
-        // THEN
-        assertFalse(stream.hasObservers())
-    }
-
-    @Test
-    fun `Has observers after on pause and then on resume`() {
-        // GIVEN
-        val stream = ValveSubject<Int>()
-
-        // WHEN
-        stream.observe(lifecycleOwner) {}
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-
-        // THEN
-        assertTrue(stream.hasObservers())
-    }
-
-    @Test
-    fun `Has observers after on stop and then on start`() {
-        // GIVEN
-        val stream = ValveSubject<Int>()
-
-        // WHEN
-        stream.observe(lifecycleOwner) {}
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
-
-        // THEN
-        assertTrue(stream.hasObservers())
-    }
 
     @Test
     fun `No observers after on destroy`() {
         // GIVEN
-        val stream = ValveSubject<Int>()
+        val stream = SingleLiveEventStream<Int>()
 
         // WHEN
         stream.observe(lifecycleOwner) {}
         stream.observe(lifecycleOwner) {}
         stream.observe(lifecycleOwner) {}
+        
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
@@ -174,8 +127,8 @@ class ValveSubjectUnitTests {
     fun `Emissions before lifecycle are buffered`() {
         // GIVEN
         var observed = false
-        val stream = ValveSubject<Int>()
-        stream.onNext(1)
+        val stream = SingleLiveEventStream<Int>()
+        stream.emit(1)
 
         // WHEN
         stream.observe(lifecycleOwner) {
@@ -190,41 +143,15 @@ class ValveSubjectUnitTests {
     }
 
     @Test
-    fun `Emissions before lifecycle are observed by all observers added before lifecycle is ready`() {
-        // GIVEN
-        var observed1 = false
-        var observed2 = false
-        val stream = ValveSubject<Int>()
-        stream.onNext(1)
-
-        // WHEN
-        stream.observe(lifecycleOwner) {
-            observed1 = true
-        }
-        stream.observe(lifecycleOwner) {
-            observed2 = true
-        }
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-
-        // THEN
-        assertTrue(observed1)
-        assertTrue(observed2)
-    }
-
-
-    @Test
-    fun `Early observers see emissions after lifecycle state is good`() {
+    fun `Early observers see both emissions before the lifecycle is good and new emissions after lifecycle is good`() {
         // GIVEN
         val values1 = ArrayList<Int>()
         val values2 = ArrayList<Int>()
-        val values3 = ArrayList<Int>()
 
 
-        val stream = ValveSubject<Int>()
-        stream.onNext(1)
-        stream.onNext(2)
+        val stream = SingleLiveEventStream<Int>()
+        stream.emit(1)
+        stream.emit(2)
 
         // WHEN
         stream.observe(lifecycleOwner) {
@@ -233,15 +160,12 @@ class ValveSubjectUnitTests {
         stream.observe(lifecycleOwner) {
             values2.add(it)
         }
-        stream.observe(lifecycleOwner) {
-            values3.add(it)
-        }
 
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
 
-        stream.onNext(3)
+        stream.emit(3)
 
         // THEN
         assertTrue(values1.contains(1))
@@ -251,50 +175,46 @@ class ValveSubjectUnitTests {
         assertTrue(values2.contains(1))
         assertTrue(values2.contains(2))
         assertTrue(values2.contains(3))
-
-        assertTrue(values3.contains(1))
-        assertTrue(values3.contains(2))
-        assertTrue(values3.contains(3))
     }
 
     @Test
     fun `Late observers only see new emissions after lifecycle state is good`() {
         // GIVEN
-        val values3 = ArrayList<Int>()
-        val values4 = ArrayList<Int>()
+        val values1 = ArrayList<Int>()
+        val values2 = ArrayList<Int>()
 
 
-        val stream = ValveSubject<Int>()
-        stream.onNext(1)
-        stream.onNext(2)
+        val stream = SingleLiveEventStream<Int>()
+        stream.emit(1)
+        stream.emit(2)
 
         // WHEN
         stream.observe(lifecycleOwner) {
-            values3.add(it)
+            values1.add(it)
         }
 
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
 
-        stream.onNext(3)
+        stream.emit(3)
 
         stream.observe(lifecycleOwner) {
-            values4.add(it)
+            values2.add(it)
         }
 
-        stream.onNext(4)
+        stream.emit(4)
 
         // THEN
-        assertTrue(values3.contains(1))
-        assertTrue(values3.contains(2))
-        assertTrue(values3.contains(3))
-        assertTrue(values3.contains(4))
+        assertTrue(values1.contains(1))
+        assertTrue(values1.contains(2))
+        assertTrue(values1.contains(3))
+        assertTrue(values1.contains(4))
 
-        assertFalse(values4.contains(1))
-        assertFalse(values4.contains(2))
-        assertFalse(values4.contains(3))
-        assertTrue(values4.contains(4))
+        assertFalse(values2.contains(1))
+        assertFalse(values2.contains(2))
+        assertFalse(values2.contains(3))
+        assertTrue(values2.contains(4))
     }
 }
 
