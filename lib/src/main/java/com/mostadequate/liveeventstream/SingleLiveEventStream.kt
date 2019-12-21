@@ -24,6 +24,7 @@ class SingleLiveEventStream<T>: SingleLiveEventSource<T> {
     }
 
     override fun observe(lifecycleOwner: LifecycleOwner, observer: (T) -> Unit) {
+        println("Observing lifecycle owner at current state ${lifecycleOwner.lifecycle.currentState}")
         this.observe(lifecycleOwner, androidx.lifecycle.Observer { observer.invoke(it) })
     }
 
@@ -93,7 +94,11 @@ private class ValveSubject<T> : Subject<T>() {
 
     init {
         val switchMap = valveSources.switchMap { valveEmitters ->
-            valveEmitters.combineLatest { isReadyList -> isReadyList.all { it } }
+            valveEmitters.combineLatest {
+                    isReadyList ->
+                println("IsReadyList $isReadyList")
+                isReadyList.all { it }
+            }
         }
 
         input.compose(ObservableTransformers.valve(switchMap, false)).subscribe(output)
@@ -141,7 +146,7 @@ private class ValveSubjectLifecycleAwareSubscriber<T> constructor(
 ) : LifecycleObserver {
 
     private var eventSourceCancelable: SingleLiveEventCancelable? = null
-    private var previousEvent: Lifecycle.Event = Lifecycle.Event.ON_CREATE
+    private var previousState: Lifecycle.State = Lifecycle.State.INITIALIZED
     private var lifecycleSubject = BehaviorSubject.create<Boolean>()
 
     init {
@@ -168,9 +173,9 @@ private class ValveSubjectLifecycleAwareSubscriber<T> constructor(
 
             lifecycleOwner.lifecycle.removeObserver(this)
         } else {
-            val wasActive = previousEvent == Lifecycle.Event.ON_START || previousEvent == Lifecycle.Event.ON_RESUME
-            val isActive = event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME
-            previousEvent = event
+            val wasActive = previousState.isAtLeast(Lifecycle.State.STARTED)
+            val isActive = state.isAtLeast(Lifecycle.State.STARTED)
+            previousState = state
 
             when {
                 wasActive && !isActive -> lifecycleSubject.onNext(false)
@@ -178,5 +183,4 @@ private class ValveSubjectLifecycleAwareSubscriber<T> constructor(
             }
         }
     }
-
 }

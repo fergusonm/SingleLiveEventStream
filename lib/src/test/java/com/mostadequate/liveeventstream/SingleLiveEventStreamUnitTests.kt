@@ -41,77 +41,92 @@ class SingleLiveEventStreamUnitTests {
     }
 
     @Test
-    fun `No emissions observed before on start`() {
+    fun `Emissions observed after on start`() {
         // GIVEN
         val stream = SingleLiveEventStream<Int>()
-        stream.emit(1)
         var observed = false
 
         // WHEN
-        stream.observe(lifecycleOwner) {
-            observed = true
-        }
-
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-
-        // THEN
-        assertFalse(observed)
-    }
-
-    @Test
-    fun `Has emissions observed after on start`() {
-        // GIVEN
-        val stream = SingleLiveEventStream<Int>()
-        stream.emit(1)
-        var observed = false
-
-        // WHEN
-        stream.observe(lifecycleOwner) {
-            observed = true
-        }
-
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
+
+        stream.observe(lifecycleOwner) {
+            observed = true
+        }
+
+        stream.emit(1)
 
         // THEN
         assertTrue(observed)
     }
 
     @Test
-    fun `Two early observers, neither observes before on start `() {
+    fun `Emissions observed after on resume`() {
         // GIVEN
         val stream = SingleLiveEventStream<Int>()
+        var observed = false
+
+        // WHEN
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+
+        stream.observe(lifecycleOwner) {
+            observed = true
+        }
+
         stream.emit(1)
 
-        var observed1 = false
-        var observed2 = false
-
-        // WHEN
-        stream.observe(lifecycleOwner) {
-            observed1 = true
-        }
-        stream.observe(lifecycleOwner) {
-            observed2 = true
-        }
-
-        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-
         // THEN
-        assertFalse(observed1)
-        assertFalse(observed2)
+        assertTrue(observed)
     }
 
-
     @Test
-    fun `No observers after on destroy`() {
+    fun `No emissions observed before on start`() {
         // GIVEN
         val stream = SingleLiveEventStream<Int>()
+        var observed = false
 
         // WHEN
-        stream.observe(lifecycleOwner) {}
-        stream.observe(lifecycleOwner) {}
-        stream.observe(lifecycleOwner) {}
-        
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        stream.observe(lifecycleOwner) {
+            observed = true
+        }
+        stream.emit(1)
+
+        // THEN
+        assertFalse(observed)
+    }
+
+    @Test
+    fun `No emissions observed after on stop`() {
+        // GIVEN
+        val stream = SingleLiveEventStream<Int>()
+        var observed = false
+
+        // WHEN
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+
+        stream.observe(lifecycleOwner) {
+            observed = true
+        }
+        stream.emit(1)
+
+        // THEN
+        assertFalse(observed)
+    }
+
+    @Test
+    fun `No emissions after on destroy`() {
+        // GIVEN
+        val stream = SingleLiveEventStream<Int>()
+        var observed = false
+
+        // WHEN
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
@@ -119,31 +134,37 @@ class SingleLiveEventStreamUnitTests {
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
 
+        stream.observe(lifecycleOwner) {
+            observed = true
+        }
+        stream.emit(1)
+
         // THEN
-        assertFalse(stream.hasObservers())
+        assertFalse(observed)
     }
 
     @Test
-    fun `Emissions before lifecycle are buffered`() {
+    fun `Emissions before on start are buffered`() {
         // GIVEN
         var observed = false
         val stream = SingleLiveEventStream<Int>()
         stream.emit(1)
 
         // WHEN
-        stream.observe(lifecycleOwner) {
-            observed = true
-        }
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+
+        stream.observe(lifecycleOwner) {
+            observed = true
+        }
 
         // THEN
         assertTrue(observed)
     }
 
     @Test
-    fun `Early observers see both emissions before the lifecycle is good and new emissions after lifecycle is good`() {
+    fun `Emissions before on start, with observers added before on start, are observed by multiple observers after on start`() {
         // GIVEN
         val values1 = ArrayList<Int>()
         val values2 = ArrayList<Int>()
@@ -178,11 +199,10 @@ class SingleLiveEventStreamUnitTests {
     }
 
     @Test
-    fun `Late observers only see new emissions after lifecycle state is good`() {
+    fun `Observers added after on start do not see the buffered emissions from before on start`() {
         // GIVEN
         val values1 = ArrayList<Int>()
         val values2 = ArrayList<Int>()
-
 
         val stream = SingleLiveEventStream<Int>()
         stream.emit(1)
