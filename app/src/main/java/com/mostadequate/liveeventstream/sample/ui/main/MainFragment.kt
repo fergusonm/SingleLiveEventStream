@@ -1,16 +1,14 @@
 package com.mostadequate.liveeventstream.sample.ui.main
 
-import androidx.lifecycle.ViewModelProviders
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
-import com.mostadequate.liveeventstream.observe
+import androidx.lifecycle.ViewModelProviders
 import com.mostadequate.liveeventstream.sample.R
-import io.reactivex.subjects.Subject
 import kotlinx.android.synthetic.main.main_fragment.*
 import kotlinx.android.synthetic.main.main_fragment.view.*
 
@@ -45,26 +43,34 @@ class MainFragment : Fragment() {
             }
         })
 
-        // Use the observe extension function to create a lifecycle aware observer.  Note that
+        // Use the observe function to create a lifecycle aware observer.  Note that
         // unlike the live data observer above, these events are received once and once only.
         // This is most easily demonstrated on a configuration change.
         viewModel.events.observe(viewLifecycleOwner) {
             when (it) {
-                Event1 -> Toast.makeText(this.context, "Event 1 received", Toast.LENGTH_LONG).show()
-                Event2 -> Toast.makeText(this.context, "Event 2 received", Toast.LENGTH_LONG).show()
-                BroadcastToTheWorldEvent -> Toast.makeText(this.context, "Broadcast received", Toast.LENGTH_LONG).show()
-                ShowSnackBarEvent -> Toast.makeText(this.context, "Show snackbar event received", Toast.LENGTH_LONG).show()
+                Event1 -> Toast.makeText(this.context, "Early Observer: Event 1 received", Toast.LENGTH_LONG).show()
+                Event2 -> Toast.makeText(this.context, "Early Observer: Event 2 received", Toast.LENGTH_LONG).show()
+                BroadcastToTheWorldEvent -> Toast.makeText(this.context, "Early Observer: Broadcast received", Toast.LENGTH_LONG).show()
+                ShowSnackBarEvent -> Toast.makeText(this.context, "Early Observer: Show snackbar event received", Toast.LENGTH_LONG).show()
             }
         }
 
         return view
     }
 
-    override fun onStart() {
-        super.onStart()
+    override fun onResume() {
+        super.onResume()
 
+        // Since the stream is single live event, once the event has been sent, and consumed, it will not be observed by
+        // observers registering late in the lifecycle.  This observer will only see new events that are generated after
+        // onResume.
         viewModel.events.observe(viewLifecycleOwner) {
-            Toast.makeText(this.context, "Late second observer only receives new event for $it", Toast.LENGTH_LONG).show()
+            when (it) {
+                Event1 -> Toast.makeText(this.context, "Late Observer: Event 1 received", Toast.LENGTH_LONG).show()
+                Event2 -> Toast.makeText(this.context, "Late Observer: Event 2 received", Toast.LENGTH_LONG).show()
+                BroadcastToTheWorldEvent -> Toast.makeText(this.context, "Late Observer: Broadcast received", Toast.LENGTH_LONG).show()
+                ShowSnackBarEvent -> Toast.makeText(this.context, "Later Observer: Show snackbar event received", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
