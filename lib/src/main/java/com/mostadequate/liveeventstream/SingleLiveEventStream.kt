@@ -1,6 +1,5 @@
 package com.mostadequate.liveeventstream
 
-import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -15,7 +14,7 @@ import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 
-class SingleLiveEventStream<T>: SingleLiveEventSource<T> {
+class SingleLiveEventStream<T> : SingleLiveEventSource<T> {
 
     private val valveSubject = ValveSubject<T>()
 
@@ -24,11 +23,15 @@ class SingleLiveEventStream<T>: SingleLiveEventSource<T> {
     }
 
     override fun observe(lifecycleOwner: LifecycleOwner, observer: (T) -> Unit) {
-        println("Observing lifecycle owner at current state ${lifecycleOwner.lifecycle.currentState}")
-        this.observe(lifecycleOwner, androidx.lifecycle.Observer { observer.invoke(it) })
+        this.observe(lifecycleOwner, androidx.lifecycle.Observer {
+            observer.invoke(it)
+        })
     }
 
-    internal fun subscribeWithLifecycle(observer: androidx.lifecycle.Observer<T>, valveSource: Subject<Boolean>): SingleLiveEventCancelable {
+    internal fun subscribeWithLifecycle(
+        observer: androidx.lifecycle.Observer<T>,
+        valveSource: Subject<Boolean>
+    ): SingleLiveEventCancelable {
         val disposableObserver = object : DisposableObserver<T>() {
 
             private val source: Subject<Boolean> = valveSource
@@ -49,7 +52,7 @@ class SingleLiveEventStream<T>: SingleLiveEventSource<T> {
             }
         }
 
-        val job = object: SingleLiveEventCancelable {
+        val job = object : SingleLiveEventCancelable {
             override fun cancel() {
                 disposableObserver.onComplete()
                 disposableObserver.dispose()
@@ -68,16 +71,6 @@ class SingleLiveEventStream<T>: SingleLiveEventSource<T> {
     fun shutdown() {
         valveSubject.onComplete()
     }
-
-    @VisibleForTesting
-    internal fun hasObservers(): Boolean {
-        return valveSubject.hasObservers()
-    }
-
-    @VisibleForTesting
-    fun hasLifecycleWatchers(): Boolean {
-        return valveSubject.valves.isEmpty()
-    }
 }
 
 /**
@@ -88,15 +81,12 @@ private class ValveSubject<T> : Subject<T>() {
     private val input: Subject<T> = PublishSubject.create()
     private val output: Subject<T> = PublishSubject.create<T>()
 
-    @VisibleForTesting
-    internal val valves = ArrayList<Subject<Boolean>>()
+    private val valves = ArrayList<Subject<Boolean>>()
     private val valveSources: Subject<List<Subject<Boolean>>> = BehaviorSubject.create()
 
     init {
         val switchMap = valveSources.switchMap { valveEmitters ->
-            valveEmitters.combineLatest {
-                    isReadyList ->
-                println("IsReadyList $isReadyList")
+            valveEmitters.combineLatest { isReadyList ->
                 isReadyList.all { it }
             }
         }
@@ -115,7 +105,6 @@ private class ValveSubject<T> : Subject<T>() {
     override fun onComplete() {
         input.onComplete()
         output.onComplete()
-        valveSources.onComplete()
         valves.forEach { it.onComplete() }
         valves.clear()
     }
