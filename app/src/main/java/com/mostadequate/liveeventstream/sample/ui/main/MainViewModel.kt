@@ -4,23 +4,22 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.mostadequate.liveeventstream.ValveSubject
-import io.reactivex.Observable
-import io.reactivex.subjects.Subject
+import com.mostadequate.liveeventstream.SingleLiveEventSource
+import com.mostadequate.liveeventstream.SingleLiveEventStream
 
 class MainViewModel : ViewModel() {
 
     private val mockRepo = MutableLiveData<Int>(1)
     private val mockSomething = MutableLiveData<String>("Loading")
 
-    private val eventSource: Subject<Event> = ValveSubject()
+    private val eventSource: SingleLiveEventStream<Event> = SingleLiveEventStream()
     private val mediatedViewState = MediatorLiveData<ViewState>().apply {
         this.value = ViewState(isLoading = true)
 
         addSource(mockRepo) {
             if (it == 10) {
                 this.value = this.value?.copy(isLoading = false)
-                eventSource.onNext(BroadcastToTheWorldEvent)
+                eventSource.emit(BroadcastToTheWorldEvent)
             }
         }
         addSource(mockSomething) {
@@ -32,13 +31,13 @@ class MainViewModel : ViewModel() {
     val viewState: LiveData<ViewState> = mediatedViewState
 
     // Events are only received once
-    val events: Observable<Event> = eventSource
+    val events: SingleLiveEventSource<Event> = eventSource
 
     init {
         // emit an event right away, to demonstrate the lack of dependence on the lifecycle of the
         // observer
-        eventSource.onNext(Event1)
-        eventSource.onNext(Event2)
+        eventSource.emit(Event1)
+        eventSource.emit(Event2)
     }
 
     fun buttonClicked() {
@@ -51,8 +50,13 @@ class MainViewModel : ViewModel() {
         }
 
         if (mockRepo.value == 2) {
-            eventSource.onNext(ShowSnackBarEvent)
+            eventSource.emit(ShowSnackBarEvent)
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        eventSource.shutdown()
     }
 }
 
