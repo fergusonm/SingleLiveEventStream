@@ -11,3 +11,16 @@ With my proposed solution, I provide support for
 * Multiple different lifecycles
 
 It supports multiple observers and ensures the events are only received when the lifecycle is at least in the started state.  If there are multiple lifecycles then the stream does not emit the values until all lifecycles are in a good state.  This is particularily important given that lifecycles that are entirely othorgonal may never receive data.
+
+Download
+---
+Download via gradle
+```groovy
+implementation "com.mostadequate.liveeventstream:singleliveeventstream:0.10"
+```
+Until it's published to jcenter you'll need to add the following to your repositories:
+```
+maven {
+        url  "https://dl.bintray.com/fergusonm/maven" 
+    }
+```
