@@ -24,7 +24,7 @@ android {
 }
 
 dependencies {
-    implementation project(path: ':lib')
+    implementation project(path: ':singleliveeventstream')
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
