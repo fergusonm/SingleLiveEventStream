@@ -34,9 +34,3 @@ Download via gradle
 ```groovy
 implementation "com.mostadequate.liveeventstream:singleliveeventstream:0.10"
 ```
-Until it's published to jcenter you'll need to add the following to your repositories:
-```
-maven {
-        url  "https://dl.bintray.com/fergusonm/maven" 
-    }
-```
