@@ -14,19 +14,7 @@ It supports multiple observers and ensures the events are only received when the
 
 Usage
 ---
-Usually from your view model:
-```
-events.emit("Something")
-```
 
-And within the "view", be it an activity, fragment, etc:
-```
-viewModel.events.observe(lifecycleOwner) {
-        Log.d("TAG", "I saw $it was emitted!")
-}
-```
-
-The observer cleans it self up on the appropriate lifecycle state and the emitter is free to emit before any observers are there.  Multiple observers may connect to the emitter before the lifecycle is in a good state but nothing will be emitted until all observers have a lifecycle in a good state.  That is with a state of `ON_START` or `ON_RESUME`.
 
 Download
 ---
