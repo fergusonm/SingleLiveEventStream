@@ -12,12 +12,49 @@ With my proposed solution, I provide support for
 
 It supports multiple observers and ensures the events are only received when the lifecycle is at least in the started state.  If there are multiple lifecycles then the stream does not emit the values until all lifecycles are in a good state.  This is particularily important given that lifecycles that are entirely othorgonal may never receive data.
 
-Usage
----
+## Usage
 
+Define events for your event stream:
 
-Download
----
+```groovy
+sealed class Event
+object Event1: Event()
+object Event2: Event()
+object BroadcastToTheWorldEvent: Event()
+object ShowSnackBarEvent: Event()
+```
+
+Create the event stream (note the TODO that I am still working on)
+
+```groovy
+class MainViewModel : ViewModel() {
+    // Events are only received once
+    val events: SingleLiveEventSource<Event> = eventSource
+
+    init {
+        // emit an event right away, to demonstrate the lack of dependence on the lifecycle of the
+        // observer
+        eventSource.emit(Event1)
+        eventSource.emit(Event2)
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        eventSource.shutdown() // TODO: make this automatic by observing the viewModelScope
+    }
+}
+```
+
+Observe the event stream:
+
+```groovy
+viewModel.events.observe(viewLifecycleOwner) {
+
+}
+```
+That's it.
+
+## Download
 Download via gradle
 ```groovy
 implementation "com.mostadequate.liveeventstream:singleliveeventstream:0.10"
