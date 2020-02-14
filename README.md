@@ -54,6 +54,8 @@ viewModel.events.observe(viewLifecycleOwner) {
 ```
 That's it.
 
+It's experimental, so you've been warned.
+
 ## Download
 Download via gradle
 ```groovy
