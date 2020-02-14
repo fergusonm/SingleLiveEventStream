@@ -56,7 +56,7 @@ class MainViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        eventSource.shutdown()
+        eventSource.shutdown() // TODO: make this automatic by observing the viewModelScope
     }
 }
 
